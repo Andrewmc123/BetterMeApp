@@ -1,0 +1,33 @@
+{
+  "name": "betterme-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BetterMe \u2014 daily life + money tracker with a multi-agent AI financial coach",
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "npm-run-all --parallel dev:api dev:web",
+    "dev:api": "npm run dev -w @betterme/api",
+    "dev:web": "npm run dev -w @betterme/web",
+    "dev:agents": "python -m uvicorn app.main:app --reload --port 8000 --app-dir services/agents",
+    "build": "npm run build -w @betterme/web && npm run build -w @betterme/api",
+    "start": "npm run migrate -w @betterme/api && npm run start -w @betterme/api",
+    "prisma:generate": "npm run prisma:generate -w @betterme/api",
+    "prisma:push": "npm run prisma:push -w @betterme/api",
+    "typecheck": "npm run typecheck -w @betterme/api && npm run typecheck -w @betterme/web"
+  },
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  },
+  "allowScripts": {
+    "@prisma/client": true,
+    "prisma": true,
+    "@prisma/engines": true,
+    "esbuild": true
+  }
+}

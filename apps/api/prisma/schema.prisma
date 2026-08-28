@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  name          String
+  timezone      String   @default("America/New_York")
+  monthlyIncome Float?
+  savingsGoal   Float?
+  createdAt     DateTime @default(now())
+
+  activities      Activity[]
+  workLogs        WorkLog[]
+  expenses        Expense[]
+  tasks           Task[]
+  weeklyPlans     WeeklyPlan[]
+  weeklyReviews   WeeklyReview[]
+  mealSuggestions MealSuggestion[]
+  bankItems       BankItem[]
+  chatThreads     ChatThread[]
+  checkins        DailyCheckin[]
+}
+
+/// One logged block of time: what you did and for how long.
+model Activity {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date         DateTime
+  category     String
+  description  String
+  durationMin  Int
+  productivity Int?
+  createdAt    DateTime @default(now())
+
+  @@index([userId, date])
+}
+
+model WorkLog {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date       DateTime
+  hours      Float
+  hourlyRate Float?
+  notes      String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId, date])
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        DateTime
+  amount      Float
+  category    String
+  merchant    String?
+  description String?
+  necessity   String   @default("unknown")
+  source      String   @default("manual")
+  plaidTxnId  String?  @unique
+  createdAt   DateTime @default(now())
+
+  @@index([userId, date])
+  @@index([userId, category])
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  notes       String?
+  dueAt       DateTime?
+  remindAt    DateTime?
+  priority    String    @default("medium")
+  status      String    @default("open")
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, status])
+  @@index([userId, dueAt])
+}
+
+/// Monday intake: the plan and budget committed to for the week.
+model WeeklyPlan {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekStart      DateTime
+  lunchBudget    Float    @default(0)
+  dinnerBudget   Float    @default(0)
+  otherBudget    Float    @default(0)
+  incomeExpected Float    @default(0)
+  goals          Json     @default("[]")
+  plannedTasks   Json     @default("[]")
+  gamePlan       Json?
+  aiBudgetAdvice Json?
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, weekStart])
+}
+
+/// Friday output: the full multi-agent post-mortem for the week.
+model WeeklyReview {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekStart      DateTime
+  weekEnd        DateTime
+  totalSpent     Float    @default(0)
+  totalHours     Float    @default(0)
+  breakdown      Json     @default("{}")
+  agentReports   Json     @default("{}")
+  narrative      String   @default("")
+  wastedSpend    Float    @default(0)
+  couldHaveSaved Float    @default(0)
+  nextWeekPlan   Json     @default("{}")
+  status         String   @default("complete")
+  createdAt      DateTime @default(now())
+
+  @@unique([userId, weekStart])
+}
+
+model MealSuggestion {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weekStart    DateTime
+  dayOfWeek    Int
+  meal         String
+  name         String
+  calories     Int
+  estCost      Float
+  ingredients  Json     @default("[]")
+  steps        String   @default("")
+  saveVsEatOut Float    @default(0)
+  createdAt    DateTime @default(now())
+
+  @@index([userId, weekStart])
+}
+
+model BankItem {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plaidItemId     String    @unique
+  accessTokenEnc  String
+  institutionName String    @default("Bank")
+  cursor          String?
+  lastSyncedAt    DateTime?
+  createdAt       DateTime  @default(now())
+
+  accounts BankAccount[]
+}
+
+model BankAccount {
+  id               String   @id @default(cuid())
+  bankItemId       String
+  bankItem         BankItem @relation(fields: [bankItemId], references: [id], onDelete: Cascade)
+  plaidAccountId   String   @unique
+  name             String
+  mask             String?
+  type             String?
+  subtype          String?
+  currentBalance   Float?
+  availableBalance Float?
+  updatedAt        DateTime @updatedAt
+}
+
+model ChatThread {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String   @default("New chat")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages ChatMessage[]
+
+  @@index([userId, updatedAt])
+}
+
+model ChatMessage {
+  id        String     @id @default(cuid())
+  threadId  String
+  thread    ChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  role      String
+  content   String
+  createdAt DateTime   @default(now())
+
+  @@index([threadId, createdAt])
+}
+
+/// Tracks whether the daily "what did you do today" intake is done.
+model DailyCheckin {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      DateTime
+  completed Boolean  @default(false)
+  mood      Int?
+  notes     String?
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
+}
