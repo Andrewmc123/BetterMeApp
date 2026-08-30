@@ -62,11 +62,6 @@ services:
           name: betterme-agents
           type: web
           envVarKey: AGENTS_SHARED_SECRET
-      - key: WEB_ORIGIN
-        fromService:
-          name: betterme-api
-          type: web
-          property: host
       - key: ENABLE_SCHEDULER
         value: "true"
       # Bank connection — leave blank to run with manual expense entry only.

@@ -89,15 +89,17 @@ The app is at http://localhost:5173, the API at :4000, the agent service at :800
 
 ## Deploying to Render
 
-1. Push this repo to GitHub.
-2. In Render, **New → Blueprint**, point it at the repo. `render.yaml` provisions a
-   Postgres database, the Python agent service, and the Node API + web service.
-3. Set the two values Render can't generate:
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Andrewmc123/BetterMeApp)
+
+1. Press the button above (or in Render: **New → Blueprint**, point it at this repo).
+   `render.yaml` provisions a Postgres database, the Python agent service, and the
+   Node API + web service.
+2. Set the two values Render can't generate:
    - `ANTHROPIC_API_KEY` on **betterme-agents**
    - `ENCRYPTION_KEY` on **betterme-api** (`openssl rand -hex 32`)
    - optionally `PLAID_CLIENT_ID` / `PLAID_SECRET` on **betterme-api**
-4. Deploy. Everything else — database URL, JWT secret, the shared secret between
-   the two services — is wired automatically by the blueprint.
+3. Deploy. Everything else — database URL, JWT secret, the shared secret between
+   the two services, and the app's own public URL — is wired automatically.
 
 On Render's free tier services sleep when idle, which stops the in-process
 scheduler. If you need the Friday review to fire reliably, set

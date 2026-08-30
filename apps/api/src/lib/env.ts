@@ -18,7 +18,11 @@ export const env = {
   nodeEnv: process.env.NODE_ENV ?? "development",
   isProd: process.env.NODE_ENV === "production",
   port: Number(process.env.PORT ?? 4000),
-  webOrigin: withScheme(process.env.WEB_ORIGIN ?? "http://localhost:5173"),
+  // Render injects RENDER_EXTERNAL_URL for every web service, so the deployed
+  // app knows its own origin without the blueprint referencing itself.
+  webOrigin: withScheme(
+    process.env.WEB_ORIGIN ?? process.env.RENDER_EXTERNAL_URL ?? "http://localhost:5173",
+  ),
 
   databaseUrl: required("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/betterme"),
   jwtSecret: required("JWT_SECRET", "dev-only-insecure-secret-change-me"),
