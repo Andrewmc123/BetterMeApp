@@ -6,6 +6,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import { env } from "./lib/env.js";
+import { prisma } from "./lib/prisma.js";
 import { requireCronSecret } from "./lib/auth.js";
 import { agentService } from "./lib/agents.js";
 import { authRouter } from "./routes/auth.js";
@@ -26,8 +27,27 @@ app.use(express.json({ limit: "1mb" }));
 app.use(morgan(env.isProd ? "combined" : "dev"));
 
 app.get("/api/health", async (_req, res) => {
-  const agents = await agentService.health();
-  res.json({ ok: true, env: env.nodeEnv, agents });
+  // Reports the database separately from the process so a deploy can be checked
+  // at a glance: `db.ok` is false until `prisma db push` has created the tables.
+  const [agents, db] = await Promise.all([
+    agentService.health(),
+    prisma.user
+      .count()
+      .then((users) => ({ ok: true, migrated: true, users }))
+      // Prisma prefixes the real cause with "Invalid `prisma.x()` invocation:";
+      // skip that so the health payload names the actual problem.
+      .catch((err: Error) => {
+        const lines = err.message.split("\n").map((l) => l.trim()).filter(Boolean);
+        const cause = lines.find((l) => !l.startsWith("Invalid `prisma")) ?? lines[0];
+        return {
+          ok: false,
+          migrated: false,
+          code: (err as { code?: string }).code ?? null,
+          error: cause ?? err.name,
+        };
+      }),
+  ]);
+  res.status(db.ok ? 200 : 503).json({ ok: db.ok, env: env.nodeEnv, db, agents });
 });
 
 app.use("/api/auth", authRouter);

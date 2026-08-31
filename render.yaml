@@ -33,7 +33,9 @@ services:
     runtime: node
     plan: free
     region: oregon
-    buildCommand: npm ci && npm run build
+    # --include=dev is required: NODE_ENV=production makes npm ci skip
+    # devDependencies, which would drop tsc and vite and fail the build.
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm run start
     healthCheckPath: /api/health
     envVars:
